@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Knitify">
+  <rect width="64" height="64" rx="14" fill="#faf7f2" />
+  <path
+    d="M18 18c8 0 8 28 16 28s8-28 16-28"
+    fill="none"
+    stroke="#7c3aed"
+    stroke-width="6"
+    stroke-linecap="round"
+  />
+  <path
+    d="M18 46c8 0 8-28 16-28s8 28 16 28"
+    fill="none"
+    stroke="#0f766e"
+    stroke-width="6"
+    stroke-linecap="round"
+  />
+</svg>
