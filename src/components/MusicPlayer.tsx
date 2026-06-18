@@ -18,7 +18,11 @@ export function MusicPlayer() {
         <img
           src="/cd.svg"
           alt="음악 플레이어 CD"
-          className="aspect-square w-[90%] rounded-full drop-shadow-[0_10px_20px_rgba(31,26,23,0.18)]"
+          className={`aspect-square w-[90%] animate-spin rounded-full drop-shadow-[0_10px_20px_rgba(31,26,23,0.18)] [animation-duration:3s] [animation-timing-function:linear] motion-reduce:animate-none ${
+            isPlaying
+              ? "[animation-play-state:running]"
+              : "[animation-play-state:paused]"
+          }`}
         />
       </div>
 
