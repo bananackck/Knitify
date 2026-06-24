@@ -1,6 +1,13 @@
+import { useState } from "react";
+import { getStoredSpotifyToken } from "../lib/spotifyAuth";
+import { MusicLibrary } from "./MusicLibrary";
 import { MusicPlayer } from "./MusicPlayer";
 
 export function WorkspaceMain() {
+  const [spotifyAccessToken, setSpotifyAccessToken] = useState<string | null>(
+    () => getStoredSpotifyToken(),
+  );
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:flex-row md:gap-app-gap md:p-6">
       <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-app-gap">
@@ -26,14 +33,12 @@ export function WorkspaceMain() {
 
       <div className="flex min-w-0 flex-[2] flex-col gap-4 md:gap-app-gap">
         <section className="md:h-full">
-          <MusicPlayer />
+          <MusicPlayer
+            accessToken={spotifyAccessToken}
+            onAccessTokenChange={setSpotifyAccessToken}
+          />
         </section>
-        <section
-          className="flex min-h-24 min-w-0 items-center justify-center rounded-app-panel bg-panel p-4 text-center text-[13px] text-app-muted md:h-8 md:min-h-0"
-          aria-label="플리 선택 필터"
-        >
-          플리 선택 필터
-        </section>
+        <MusicLibrary accessToken={spotifyAccessToken} />
       </div>
     </main>
   );

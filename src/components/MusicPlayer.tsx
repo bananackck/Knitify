@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   completeSpotifyLoginFromUrl,
   getSpotifyConfig,
-  getStoredSpotifyToken,
   logoutSpotify,
   redirectToSpotifyLogin,
 } from "../lib/spotifyAuth";
@@ -18,11 +17,16 @@ import {
   transferSpotifyPlayback,
 } from "../lib/spotifyPlayback";
 
-export function MusicPlayer() {
+type MusicPlayerProps = {
+  accessToken: string | null;
+  onAccessTokenChange: (accessToken: string | null) => void;
+};
+
+export function MusicPlayer({
+  accessToken,
+  onAccessTokenChange,
+}: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    getStoredSpotifyToken(),
-  );
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,13 +40,13 @@ export function MusicPlayer() {
     completeSpotifyLoginFromUrl()
       .then((token) => {
         if (token) {
-          setAccessToken(token);
+          onAccessTokenChange(token);
         }
       })
       .catch((error: unknown) => {
         setErrorMessage(getErrorMessage(error));
       });
-  }, []);
+  }, [onAccessTokenChange]);
 
   useEffect(() => {
     if (!accessToken || playerRef.current) {
@@ -124,11 +128,11 @@ export function MusicPlayer() {
     logoutSpotify();
     playerRef.current?.disconnect();
     playerRef.current = null;
-    setAccessToken(null);
+    onAccessTokenChange(null);
     setDeviceId(null);
     setIsPlaying(false);
     setStatus("Spotify 연결 대기 중");
-  }, []);
+  }, [onAccessTokenChange]);
 
   const handleTogglePlay = useCallback(async () => {
     const player = playerRef.current;

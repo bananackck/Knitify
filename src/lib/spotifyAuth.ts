@@ -10,6 +10,9 @@ const scopes = [
   "user-read-private",
   "user-read-playback-state",
   "user-modify-playback-state",
+  "user-library-read",
+  "playlist-read-private",
+  "playlist-read-collaborative",
 ];
 
 type SpotifyTokenResponse = {
