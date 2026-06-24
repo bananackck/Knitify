@@ -2,11 +2,14 @@ import { useState } from "react";
 import { getStoredSpotifyToken } from "../lib/spotifyAuth";
 import { MusicLibrary } from "./MusicLibrary";
 import { MusicPlayer } from "./MusicPlayer";
+import type { SpotifyLibraryPlaylist } from "../lib/spotifyLibrary";
 
 export function WorkspaceMain() {
   const [spotifyAccessToken, setSpotifyAccessToken] = useState<string | null>(
     () => getStoredSpotifyToken(),
   );
+  const [selectedPlaylist, setSelectedPlaylist] =
+    useState<SpotifyLibraryPlaylist | null>(null);
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:flex-row md:gap-app-gap md:p-6">
@@ -36,9 +39,15 @@ export function WorkspaceMain() {
           <MusicPlayer
             accessToken={spotifyAccessToken}
             onAccessTokenChange={setSpotifyAccessToken}
+            selectedPlaylistName={selectedPlaylist?.name ?? null}
+            selectedPlaylistUri={selectedPlaylist?.uri ?? null}
           />
         </section>
-        <MusicLibrary accessToken={spotifyAccessToken} />
+        <MusicLibrary
+          accessToken={spotifyAccessToken}
+          selectedPlaylistId={selectedPlaylist?.id ?? null}
+          onPlaylistSelect={setSelectedPlaylist}
+        />
       </div>
     </main>
   );

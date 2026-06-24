@@ -20,18 +20,22 @@ import {
 type MusicPlayerProps = {
   accessToken: string | null;
   onAccessTokenChange: (accessToken: string | null) => void;
+  selectedPlaylistName: string | null;
+  selectedPlaylistUri: string | null;
 };
 
 export function MusicPlayer({
   accessToken,
   onAccessTokenChange,
+  selectedPlaylistName,
+  selectedPlaylistUri,
 }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const playerRef = useRef<Spotify.Player | null>(null);
-  const hasStartedDefaultTrackRef = useRef(false);
+  const activePlaybackUriRef = useRef<string | null>(null);
 
   const { clientId, defaultUri } = useMemo(() => getSpotifyConfig(), []);
   const canUseSpotify = Boolean(clientId);
@@ -129,6 +133,7 @@ export function MusicPlayer({
     playerRef.current?.disconnect();
     playerRef.current = null;
     onAccessTokenChange(null);
+    activePlaybackUriRef.current = null;
     setDeviceId(null);
     setIsPlaying(false);
     setStatus("Spotify 연결 대기 중");
@@ -143,9 +148,16 @@ export function MusicPlayer({
     }
 
     try {
-      if (!hasStartedDefaultTrackRef.current && defaultUri) {
-        await startSpotifyPlayback(accessToken, deviceId, defaultUri);
-        hasStartedDefaultTrackRef.current = true;
+      const playbackUri = selectedPlaylistUri ?? defaultUri;
+
+      if (playbackUri && activePlaybackUriRef.current !== playbackUri) {
+        await startSpotifyPlayback(accessToken, deviceId, playbackUri);
+        activePlaybackUriRef.current = playbackUri;
+        setStatus(
+          selectedPlaylistName
+            ? `${selectedPlaylistName} 재생 중`
+            : "Spotify 재생 중",
+        );
         return;
       }
 
@@ -153,7 +165,13 @@ export function MusicPlayer({
     } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
     }
-  }, [accessToken, defaultUri, deviceId]);
+  }, [
+    accessToken,
+    defaultUri,
+    deviceId,
+    selectedPlaylistName,
+    selectedPlaylistUri,
+  ]);
 
   const handlePreviousTrack = useCallback(() => {
     playerRef.current
@@ -220,6 +238,11 @@ export function MusicPlayer({
       </div>
 
       <div className="flex max-w-72 flex-col items-center gap-2 text-center text-xs text-app-muted">
+        {selectedPlaylistName ? (
+          <span className="font-medium text-app-text">
+            선택됨: {selectedPlaylistName}
+          </span>
+        ) : null}
         <span>{errorMessage ?? status}</span>
         {canUseSpotify ? (
           accessToken ? (

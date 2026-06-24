@@ -12,6 +12,7 @@ type SpotifyPlaylistsResponse = {
   items: {
     id: string;
     name: string;
+    uri: string;
     images: SpotifyImage[];
     owner: SpotifyPlaylistOwner;
     items?: {
@@ -26,6 +27,7 @@ type SpotifyPlaylistsResponse = {
 export type SpotifyLibraryPlaylist = {
   id: string;
   name: string;
+  uri: string;
   ownerName: string;
   trackCount: number | null;
   imageUrl: string | null;
@@ -51,6 +53,7 @@ export async function fetchSpotifyLibraryPlaylists(accessToken: string) {
   return data.items.map((playlist) => ({
     id: playlist.id,
     name: playlist.name,
+    uri: playlist.uri,
     ownerName: playlist.owner.display_name ?? "알 수 없음",
     trackCount: playlist.items?.total ?? playlist.tracks?.total ?? null,
     imageUrl: playlist.images[0]?.url ?? null,
