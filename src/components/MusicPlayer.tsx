@@ -34,6 +34,10 @@ export function MusicPlayer({
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentTrackImageUrl, setCurrentTrackImageUrl] = useState<
+    string | null
+  >(null);
+  const [currentTrackName, setCurrentTrackName] = useState<string | null>(null);
   const playerRef = useRef<Spotify.Player | null>(null);
   const activePlaybackUriRef = useRef<string | null>(null);
 
@@ -90,6 +94,10 @@ export function MusicPlayer({
           }
 
           setIsPlaying(!state.paused);
+          setCurrentTrackImageUrl(
+            state.track_window.current_track.album.images[0]?.url ?? null,
+          );
+          setCurrentTrackName(state.track_window.current_track.name);
         });
 
         player.addListener("initialization_error", (error) =>
@@ -136,6 +144,8 @@ export function MusicPlayer({
     activePlaybackUriRef.current = null;
     setDeviceId(null);
     setIsPlaying(false);
+    setCurrentTrackImageUrl(null);
+    setCurrentTrackName(null);
     setStatus("Spotify 연결 대기 중");
   }, [onAccessTokenChange]);
 
@@ -193,8 +203,12 @@ export function MusicPlayer({
       <div className="relative flex aspect-square w-full max-w-88 items-center justify-center rounded-full bg-primary shadow-[inset_0_-10px_24px_rgba(31,26,23,0.08),0_18px_32px_rgba(31,26,23,0.08)]">
         <div className="absolute right-[18%] top-[15%] z-10 h-[20%] w-1.5 origin-top rotate-[40deg] rounded-full bg-app-muted/60" />
         <img
-          src="/cd.svg"
-          alt="음악 플레이어 CD"
+          src={currentTrackImageUrl ?? "/cd.svg"}
+          alt={
+            currentTrackName
+              ? `${currentTrackName} 앨범 커버`
+              : "음악 플레이어 CD"
+          }
           className={`aspect-square w-[90%] animate-spin rounded-full drop-shadow-[0_10px_20px_rgba(31,26,23,0.18)] [animation-duration:3s] [animation-timing-function:linear] motion-reduce:animate-none ${
             isPlaying
               ? "[animation-play-state:running]"
