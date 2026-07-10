@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   completeSpotifyLoginFromUrl,
   getSpotifyConfig,
-  getStoredSpotifyToken,
   logoutSpotify,
   redirectToSpotifyLogin,
 } from "../lib/spotifyAuth";
@@ -17,32 +16,59 @@ import {
   startSpotifyPlayback,
   transferSpotifyPlayback,
 } from "../lib/spotifyPlayback";
+import { getRecentTrack, storeRecentTrack } from "../lib/musicPersistence";
 
-export function MusicPlayer() {
+type MusicPlayerProps = {
+  accessToken: string | null;
+  onAccessTokenChange: (accessToken: string | null) => void;
+  selectedPlaylistName: string | null;
+  selectedPlaylistUri: string | null;
+  playlistPlaybackRequestId: number;
+};
+
+export function MusicPlayer({
+  accessToken,
+  onAccessTokenChange,
+  selectedPlaylistName,
+  selectedPlaylistUri,
+  playlistPlaybackRequestId,
+}: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    getStoredSpotifyToken(),
-  );
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const recentTrack = useMemo(() => getRecentTrack(), []);
+  const [currentTrackImageUrl, setCurrentTrackImageUrl] = useState<
+    string | null
+  >(recentTrack?.imageUrl ?? null);
+  const [currentTrackName, setCurrentTrackName] = useState<string | null>(
+    recentTrack?.name ?? null,
+  );
   const playerRef = useRef<Spotify.Player | null>(null);
-  const hasStartedDefaultTrackRef = useRef(false);
+  const activePlaybackUriRef = useRef<string | null>(null);
+  const recentTrackRef = useRef(recentTrack);
+  const hasRestoredPlaybackRef = useRef(false);
+  const handledPlaylistRequestRef = useRef(0);
+  const playlistRequestIdRef = useRef(playlistPlaybackRequestId);
 
   const { clientId, defaultUri } = useMemo(() => getSpotifyConfig(), []);
   const canUseSpotify = Boolean(clientId);
 
   useEffect(() => {
+    playlistRequestIdRef.current = playlistPlaybackRequestId;
+  }, [playlistPlaybackRequestId]);
+
+  useEffect(() => {
     completeSpotifyLoginFromUrl()
       .then((token) => {
         if (token) {
-          setAccessToken(token);
+          onAccessTokenChange(token);
         }
       })
       .catch((error: unknown) => {
         setErrorMessage(getErrorMessage(error));
       });
-  }, []);
+  }, [onAccessTokenChange]);
 
   useEffect(() => {
     if (!accessToken || playerRef.current) {
@@ -66,9 +92,31 @@ export function MusicPlayer() {
         player.addListener("ready", ({ device_id }) => {
           setDeviceId(device_id);
           setStatus("Spotify 플레이어 준비 완료");
-          transferSpotifyPlayback(accessToken, device_id).catch(
-            (error: unknown) => setErrorMessage(getErrorMessage(error)),
-          );
+          transferSpotifyPlayback(accessToken, device_id)
+            .then(async () => {
+              const storedTrack = recentTrackRef.current;
+
+              if (
+                !storedTrack ||
+                hasRestoredPlaybackRef.current ||
+                playlistRequestIdRef.current > 0
+              ) {
+                return;
+              }
+
+              hasRestoredPlaybackRef.current = true;
+              await startSpotifyPlayback(
+                accessToken,
+                device_id,
+                storedTrack.uri,
+              );
+              activePlaybackUriRef.current = storedTrack.uri;
+              setStatus(`${storedTrack.name} 다시 재생 중`);
+            })
+            .catch((error: unknown) => {
+              setStatus("마지막 곡이 복원되었습니다. 재생 버튼을 눌러 주세요.");
+              setErrorMessage(getErrorMessage(error));
+            });
         });
 
         player.addListener("not_ready", () => {
@@ -82,6 +130,17 @@ export function MusicPlayer() {
           }
 
           setIsPlaying(!state.paused);
+          const currentTrack = state.track_window.current_track;
+          const imageUrl = currentTrack.album.images[0]?.url ?? null;
+
+          setCurrentTrackImageUrl(imageUrl);
+          setCurrentTrackName(currentTrack.name);
+          recentTrackRef.current = {
+            uri: currentTrack.uri,
+            name: currentTrack.name,
+            imageUrl,
+          };
+          storeRecentTrack(recentTrackRef.current);
         });
 
         player.addListener("initialization_error", (error) =>
@@ -114,6 +173,38 @@ export function MusicPlayer() {
     };
   }, [accessToken]);
 
+  useEffect(() => {
+    if (
+      playlistPlaybackRequestId === 0 ||
+      handledPlaylistRequestRef.current === playlistPlaybackRequestId ||
+      !accessToken ||
+      !deviceId ||
+      !selectedPlaylistUri
+    ) {
+      return;
+    }
+
+    handledPlaylistRequestRef.current = playlistPlaybackRequestId;
+    setErrorMessage(null);
+
+    startSpotifyPlayback(accessToken, deviceId, selectedPlaylistUri)
+      .then(() => {
+        activePlaybackUriRef.current = selectedPlaylistUri;
+        setStatus(
+          selectedPlaylistName
+            ? `${selectedPlaylistName} 첫 곡 재생 중`
+            : "플레이리스트 첫 곡 재생 중",
+        );
+      })
+      .catch((error: unknown) => setErrorMessage(getErrorMessage(error)));
+  }, [
+    accessToken,
+    deviceId,
+    playlistPlaybackRequestId,
+    selectedPlaylistName,
+    selectedPlaylistUri,
+  ]);
+
   const handleSpotifyLogin = useCallback(() => {
     redirectToSpotifyLogin().catch((error: unknown) =>
       setErrorMessage(getErrorMessage(error)),
@@ -124,11 +215,15 @@ export function MusicPlayer() {
     logoutSpotify();
     playerRef.current?.disconnect();
     playerRef.current = null;
-    setAccessToken(null);
+    onAccessTokenChange(null);
+    activePlaybackUriRef.current = null;
     setDeviceId(null);
     setIsPlaying(false);
+    setCurrentTrackImageUrl(null);
+    setCurrentTrackName(null);
     setStatus("Spotify 연결 대기 중");
-  }, []);
+    hasRestoredPlaybackRef.current = false;
+  }, [onAccessTokenChange]);
 
   const handleTogglePlay = useCallback(async () => {
     const player = playerRef.current;
@@ -139,9 +234,17 @@ export function MusicPlayer() {
     }
 
     try {
-      if (!hasStartedDefaultTrackRef.current && defaultUri) {
-        await startSpotifyPlayback(accessToken, deviceId, defaultUri);
-        hasStartedDefaultTrackRef.current = true;
+      const playbackUri =
+        selectedPlaylistUri ?? recentTrackRef.current?.uri ?? defaultUri;
+
+      if (playbackUri && activePlaybackUriRef.current !== playbackUri) {
+        await startSpotifyPlayback(accessToken, deviceId, playbackUri);
+        activePlaybackUriRef.current = playbackUri;
+        setStatus(
+          selectedPlaylistName
+            ? `${selectedPlaylistName} 재생 중`
+            : "Spotify 재생 중",
+        );
         return;
       }
 
@@ -149,7 +252,13 @@ export function MusicPlayer() {
     } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
     }
-  }, [accessToken, defaultUri, deviceId]);
+  }, [
+    accessToken,
+    defaultUri,
+    deviceId,
+    selectedPlaylistName,
+    selectedPlaylistUri,
+  ]);
 
   const handlePreviousTrack = useCallback(() => {
     playerRef.current
@@ -171,8 +280,12 @@ export function MusicPlayer() {
       <div className="relative flex aspect-square w-full max-w-88 items-center justify-center rounded-full bg-primary shadow-[inset_0_-10px_24px_rgba(31,26,23,0.08),0_18px_32px_rgba(31,26,23,0.08)]">
         <div className="absolute right-[18%] top-[15%] z-10 h-[20%] w-1.5 origin-top rotate-[40deg] rounded-full bg-app-muted/60" />
         <img
-          src="/cd.svg"
-          alt="음악 플레이어 CD"
+          src={currentTrackImageUrl ?? "/cd.svg"}
+          alt={
+            currentTrackName
+              ? `${currentTrackName} 앨범 커버`
+              : "음악 플레이어 CD"
+          }
           className={`aspect-square w-[90%] animate-spin rounded-full drop-shadow-[0_10px_20px_rgba(31,26,23,0.18)] [animation-duration:3s] [animation-timing-function:linear] motion-reduce:animate-none ${
             isPlaying
               ? "[animation-play-state:running]"
@@ -216,6 +329,11 @@ export function MusicPlayer() {
       </div>
 
       <div className="flex max-w-72 flex-col items-center gap-2 text-center text-xs text-app-muted">
+        {selectedPlaylistName ? (
+          <span className="font-medium text-app-text">
+            선택됨: {selectedPlaylistName}
+          </span>
+        ) : null}
         <span>{errorMessage ?? status}</span>
         {canUseSpotify ? (
           accessToken ? (

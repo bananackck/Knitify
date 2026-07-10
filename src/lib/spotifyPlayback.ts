@@ -60,7 +60,7 @@ export async function startSpotifyPlayback(
       body: JSON.stringify(
         spotifyUri.startsWith("spotify:track:")
           ? { uris: [spotifyUri] }
-          : { context_uri: spotifyUri },
+          : { context_uri: spotifyUri, offset: { position: 0 } },
       ),
     },
   );

@@ -9,6 +9,7 @@ declare namespace Spotify {
   }
 
   interface WebPlaybackTrack {
+    uri: string;
     name: string;
     album: {
       images: Array<{
