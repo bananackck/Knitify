@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/knitify?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DB_USERNAME:knitify}
-    password: ${DB_PASSWORD:knitify}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
