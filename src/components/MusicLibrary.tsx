@@ -62,7 +62,7 @@ export function MusicLibrary({
       className="flex min-h-32 min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-app-panel bg-surface p-3"
       aria-label="플리 선택 필터"
     >
-      <h2 className="text-xs font-medium text-app-muted">라이브러리 탐색기</h2>
+      <h2 className="text-xs font-medium text-app-muted">플레이리스트</h2>
 
       {accessToken ? (
         <LibraryContent
