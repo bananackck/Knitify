@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: knitify-backend
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/knitify?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:knitify}
+    password: ${DB_PASSWORD:knitify}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+app:
+  frontend-url: ${FRONTEND_URL:http://127.0.0.1:5173}
+  jwt-secret: ${JWT_SECRET:local-development-secret-change-me-local-development-secret}
+  token-encryption-key: ${TOKEN_ENCRYPTION_KEY:local-dev-32-byte-key-change-me!}
+  spotify:
+    client-id: ${SPOTIFY_CLIENT_ID:}
+    client-secret: ${SPOTIFY_CLIENT_SECRET:}
+    redirect-uri: ${SPOTIFY_REDIRECT_URI:http://127.0.0.1:8080/api/spotify/callback}
