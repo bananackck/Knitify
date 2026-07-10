@@ -6,6 +6,7 @@ const RECENT_TRACK_KEY = "knitify.recentTrack";
 export type RecentTrack = {
   uri: string;
   name: string;
+  artistName: string;
   imageUrl: string | null;
 };
 

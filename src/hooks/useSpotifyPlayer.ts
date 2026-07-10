@@ -15,7 +15,6 @@ import {
 type UseSpotifyPlayerOptions = {
   accessToken: string | null;
   onAccessTokenChange: (accessToken: string | null) => void;
-  selectedPlaylistName: string | null;
   selectedPlaylistUri: string | null;
   playlistPlaybackRequestId: number;
 };
@@ -23,7 +22,6 @@ type UseSpotifyPlayerOptions = {
 export function useSpotifyPlayer({
   accessToken,
   onAccessTokenChange,
-  selectedPlaylistName,
   selectedPlaylistUri,
   playlistPlaybackRequestId,
 }: UseSpotifyPlayerOptions) {
@@ -31,7 +29,6 @@ export function useSpotifyPlayer({
   const { clientId, defaultUri } = useMemo(() => getSpotifyConfig(), []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTrackImageUrl, setCurrentTrackImageUrl] = useState<
     string | null
@@ -39,6 +36,9 @@ export function useSpotifyPlayer({
   const [currentTrackName, setCurrentTrackName] = useState<string | null>(
     recentTrack?.name ?? null,
   );
+  const [currentTrackArtistName, setCurrentTrackArtistName] = useState<
+    string | null
+  >(recentTrack?.artistName ?? null);
   const playerRef = useRef<Spotify.Player | null>(null);
   const activePlaybackUriRef = useRef<string | null>(null);
   const recentTrackRef = useRef(recentTrack);
@@ -77,7 +77,6 @@ export function useSpotifyPlayer({
 
         player.addListener("ready", ({ device_id }) => {
           setDeviceId(device_id);
-          setStatus("Spotify 플레이어 준비 완료");
           transferSpotifyPlayback(accessToken, device_id)
             .then(async () => {
               const storedTrack = recentTrackRef.current;
@@ -97,17 +96,14 @@ export function useSpotifyPlayer({
                 storedTrack.uri,
               );
               activePlaybackUriRef.current = storedTrack.uri;
-              setStatus(`${storedTrack.name} 재생 중`);
             })
             .catch((error: unknown) => {
-              setStatus("마지막 곡이 복원되었습니다. 재생 버튼을 눌러 주세요.");
               setErrorMessage(getErrorMessage(error));
             });
         });
 
         player.addListener("not_ready", () => {
           setDeviceId(null);
-          setStatus("Spotify 플레이어 연결이 끊어졌습니다.");
         });
 
         player.addListener("player_state_changed", (state) => {
@@ -117,13 +113,18 @@ export function useSpotifyPlayer({
 
           const currentTrack = state.track_window.current_track;
           const imageUrl = currentTrack.album.images[0]?.url ?? null;
+          const artistName = currentTrack.artists
+            .map((artist) => artist.name)
+            .join(", ");
 
           setIsPlaying(!state.paused);
           setCurrentTrackImageUrl(imageUrl);
           setCurrentTrackName(currentTrack.name);
+          setCurrentTrackArtistName(artistName);
           recentTrackRef.current = {
             uri: currentTrack.uri,
             name: currentTrack.name,
+            artistName,
             imageUrl,
           };
           storeRecentTrack(recentTrackRef.current);
@@ -169,20 +170,9 @@ export function useSpotifyPlayer({
     startSpotifyPlayback(accessToken, deviceId, selectedPlaylistUri)
       .then(() => {
         activePlaybackUriRef.current = selectedPlaylistUri;
-        setStatus(
-          selectedPlaylistName
-            ? `${selectedPlaylistName} 첫 곡 재생 중`
-            : "플레이리스트 첫 곡 재생 중",
-        );
       })
       .catch((error: unknown) => setErrorMessage(getErrorMessage(error)));
-  }, [
-    accessToken,
-    deviceId,
-    playlistPlaybackRequestId,
-    selectedPlaylistName,
-    selectedPlaylistUri,
-  ]);
+  }, [accessToken, deviceId, playlistPlaybackRequestId, selectedPlaylistUri]);
 
   const login = useCallback(() => {
     redirectToSpotifyLogin().catch((error: unknown) =>
@@ -200,7 +190,7 @@ export function useSpotifyPlayer({
     setIsPlaying(false);
     setCurrentTrackImageUrl(null);
     setCurrentTrackName(null);
-    setStatus("Spotify 연결 대기 중");
+    setCurrentTrackArtistName(null);
     hasRestoredPlaybackRef.current = false;
   }, [onAccessTokenChange]);
 
@@ -223,11 +213,6 @@ export function useSpotifyPlayer({
       if (playbackUri && activePlaybackUriRef.current !== playbackUri) {
         await startSpotifyPlayback(accessToken, deviceId, playbackUri);
         activePlaybackUriRef.current = playbackUri;
-        setStatus(
-          selectedPlaylistName
-            ? `${selectedPlaylistName} 재생 중`
-            : "Spotify 재생 중",
-        );
         return;
       }
 
@@ -235,14 +220,7 @@ export function useSpotifyPlayer({
     } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
     }
-  }, [
-    accessToken,
-    defaultUri,
-    deviceId,
-    isPlaying,
-    selectedPlaylistName,
-    selectedPlaylistUri,
-  ]);
+  }, [accessToken, defaultUri, deviceId, isPlaying, selectedPlaylistUri]);
 
   const previousTrack = useCallback(() => {
     playerRef.current
@@ -258,6 +236,7 @@ export function useSpotifyPlayer({
 
   return {
     canUseSpotify: Boolean(clientId),
+    currentTrackArtistName,
     currentTrackImageUrl,
     currentTrackName,
     deviceId,
@@ -267,7 +246,6 @@ export function useSpotifyPlayer({
     logout,
     nextTrack,
     previousTrack,
-    status,
     togglePlay,
   };
 }

@@ -23,6 +23,7 @@ export function MusicPlayer({
 }: MusicPlayerProps) {
   const {
     canUseSpotify,
+    currentTrackArtistName,
     currentTrackImageUrl,
     currentTrackName,
     deviceId,
@@ -32,12 +33,10 @@ export function MusicPlayer({
     logout,
     nextTrack,
     previousTrack,
-    status,
     togglePlay,
   } = useSpotifyPlayer({
     accessToken,
     onAccessTokenChange,
-    selectedPlaylistName,
     selectedPlaylistUri,
     playlistPlaybackRequestId,
   });
@@ -101,10 +100,16 @@ export function MusicPlayer({
       <div className="flex max-w-52 flex-col items-center gap-1 text-center text-xs text-app-muted">
         {selectedPlaylistName ? (
           <span className="font-medium text-app-text">
-            선택됨: {selectedPlaylistName}
+            Playlist: {selectedPlaylistName}
           </span>
         ) : null}
-        <span>{errorMessage ?? status}</span>
+        <span className="max-w-full truncate font-semibold text-app-text">
+          {currentTrackName ?? "재생 중인 곡 없음"}
+        </span>
+        <span className="max-w-full truncate">
+          {currentTrackArtistName ?? "아티스트 정보 없음"}
+        </span>
+        {errorMessage ? <span>{errorMessage}</span> : null}
         {canUseSpotify ? (
           accessToken ? (
             <Button size="small" variant="text" onClick={logout}>
