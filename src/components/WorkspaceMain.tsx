@@ -14,10 +14,12 @@ export function WorkspaceMain() {
   );
   const [selectedPlaylist, setSelectedPlaylist] =
     useState<SpotifyLibraryPlaylist | null>(() => getRecentPlaylist());
+  const [playlistPlaybackRequestId, setPlaylistPlaybackRequestId] = useState(0);
 
   const handlePlaylistSelect = (playlist: SpotifyLibraryPlaylist) => {
     setSelectedPlaylist(playlist);
     storeRecentPlaylist(playlist);
+    setPlaylistPlaybackRequestId((current) => current + 1);
   };
 
   return (
@@ -50,6 +52,7 @@ export function WorkspaceMain() {
             onAccessTokenChange={setSpotifyAccessToken}
             selectedPlaylistName={selectedPlaylist?.name ?? null}
             selectedPlaylistUri={selectedPlaylist?.uri ?? null}
+            playlistPlaybackRequestId={playlistPlaybackRequestId}
           />
         </section>
         <MusicLibrary

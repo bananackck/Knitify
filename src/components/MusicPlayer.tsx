@@ -23,6 +23,7 @@ type MusicPlayerProps = {
   onAccessTokenChange: (accessToken: string | null) => void;
   selectedPlaylistName: string | null;
   selectedPlaylistUri: string | null;
+  playlistPlaybackRequestId: number;
 };
 
 export function MusicPlayer({
@@ -30,6 +31,7 @@ export function MusicPlayer({
   onAccessTokenChange,
   selectedPlaylistName,
   selectedPlaylistUri,
+  playlistPlaybackRequestId,
 }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -46,9 +48,15 @@ export function MusicPlayer({
   const activePlaybackUriRef = useRef<string | null>(null);
   const recentTrackRef = useRef(recentTrack);
   const hasRestoredPlaybackRef = useRef(false);
+  const handledPlaylistRequestRef = useRef(0);
+  const playlistRequestIdRef = useRef(playlistPlaybackRequestId);
 
   const { clientId, defaultUri } = useMemo(() => getSpotifyConfig(), []);
   const canUseSpotify = Boolean(clientId);
+
+  useEffect(() => {
+    playlistRequestIdRef.current = playlistPlaybackRequestId;
+  }, [playlistPlaybackRequestId]);
 
   useEffect(() => {
     completeSpotifyLoginFromUrl()
@@ -88,7 +96,11 @@ export function MusicPlayer({
             .then(async () => {
               const storedTrack = recentTrackRef.current;
 
-              if (!storedTrack || hasRestoredPlaybackRef.current) {
+              if (
+                !storedTrack ||
+                hasRestoredPlaybackRef.current ||
+                playlistRequestIdRef.current > 0
+              ) {
                 return;
               }
 
@@ -160,6 +172,38 @@ export function MusicPlayer({
       playerRef.current = null;
     };
   }, [accessToken]);
+
+  useEffect(() => {
+    if (
+      playlistPlaybackRequestId === 0 ||
+      handledPlaylistRequestRef.current === playlistPlaybackRequestId ||
+      !accessToken ||
+      !deviceId ||
+      !selectedPlaylistUri
+    ) {
+      return;
+    }
+
+    handledPlaylistRequestRef.current = playlistPlaybackRequestId;
+    setErrorMessage(null);
+
+    startSpotifyPlayback(accessToken, deviceId, selectedPlaylistUri)
+      .then(() => {
+        activePlaybackUriRef.current = selectedPlaylistUri;
+        setStatus(
+          selectedPlaylistName
+            ? `${selectedPlaylistName} 첫 곡 재생 중`
+            : "플레이리스트 첫 곡 재생 중",
+        );
+      })
+      .catch((error: unknown) => setErrorMessage(getErrorMessage(error)));
+  }, [
+    accessToken,
+    deviceId,
+    playlistPlaybackRequestId,
+    selectedPlaylistName,
+    selectedPlaylistUri,
+  ]);
 
   const handleSpotifyLogin = useCallback(() => {
     redirectToSpotifyLogin().catch((error: unknown) =>
