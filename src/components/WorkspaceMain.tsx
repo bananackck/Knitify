@@ -3,13 +3,22 @@ import { getStoredSpotifyToken } from "../lib/spotifyAuth";
 import { MusicLibrary } from "./MusicLibrary";
 import { MusicPlayer } from "./MusicPlayer";
 import type { SpotifyLibraryPlaylist } from "../lib/spotifyLibrary";
+import {
+  getRecentPlaylist,
+  storeRecentPlaylist,
+} from "../lib/musicPersistence";
 
 export function WorkspaceMain() {
   const [spotifyAccessToken, setSpotifyAccessToken] = useState<string | null>(
     () => getStoredSpotifyToken(),
   );
   const [selectedPlaylist, setSelectedPlaylist] =
-    useState<SpotifyLibraryPlaylist | null>(null);
+    useState<SpotifyLibraryPlaylist | null>(() => getRecentPlaylist());
+
+  const handlePlaylistSelect = (playlist: SpotifyLibraryPlaylist) => {
+    setSelectedPlaylist(playlist);
+    storeRecentPlaylist(playlist);
+  };
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:flex-row md:gap-app-gap md:p-6">
@@ -46,7 +55,7 @@ export function WorkspaceMain() {
         <MusicLibrary
           accessToken={spotifyAccessToken}
           selectedPlaylistId={selectedPlaylist?.id ?? null}
-          onPlaylistSelect={setSelectedPlaylist}
+          onPlaylistSelect={handlePlaylistSelect}
         />
       </div>
     </main>

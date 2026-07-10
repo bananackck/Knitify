@@ -16,6 +16,7 @@ import {
   startSpotifyPlayback,
   transferSpotifyPlayback,
 } from "../lib/spotifyPlayback";
+import { getRecentTrack, storeRecentTrack } from "../lib/musicPersistence";
 
 type MusicPlayerProps = {
   accessToken: string | null;
@@ -34,12 +35,17 @@ export function MusicPlayer({
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [status, setStatus] = useState("Spotify 연결 대기 중");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const recentTrack = useMemo(() => getRecentTrack(), []);
   const [currentTrackImageUrl, setCurrentTrackImageUrl] = useState<
     string | null
-  >(null);
-  const [currentTrackName, setCurrentTrackName] = useState<string | null>(null);
+  >(recentTrack?.imageUrl ?? null);
+  const [currentTrackName, setCurrentTrackName] = useState<string | null>(
+    recentTrack?.name ?? null,
+  );
   const playerRef = useRef<Spotify.Player | null>(null);
   const activePlaybackUriRef = useRef<string | null>(null);
+  const recentTrackRef = useRef(recentTrack);
+  const hasRestoredPlaybackRef = useRef(false);
 
   const { clientId, defaultUri } = useMemo(() => getSpotifyConfig(), []);
   const canUseSpotify = Boolean(clientId);
@@ -78,9 +84,27 @@ export function MusicPlayer({
         player.addListener("ready", ({ device_id }) => {
           setDeviceId(device_id);
           setStatus("Spotify 플레이어 준비 완료");
-          transferSpotifyPlayback(accessToken, device_id).catch(
-            (error: unknown) => setErrorMessage(getErrorMessage(error)),
-          );
+          transferSpotifyPlayback(accessToken, device_id)
+            .then(async () => {
+              const storedTrack = recentTrackRef.current;
+
+              if (!storedTrack || hasRestoredPlaybackRef.current) {
+                return;
+              }
+
+              hasRestoredPlaybackRef.current = true;
+              await startSpotifyPlayback(
+                accessToken,
+                device_id,
+                storedTrack.uri,
+              );
+              activePlaybackUriRef.current = storedTrack.uri;
+              setStatus(`${storedTrack.name} 다시 재생 중`);
+            })
+            .catch((error: unknown) => {
+              setStatus("마지막 곡이 복원되었습니다. 재생 버튼을 눌러 주세요.");
+              setErrorMessage(getErrorMessage(error));
+            });
         });
 
         player.addListener("not_ready", () => {
@@ -94,10 +118,17 @@ export function MusicPlayer({
           }
 
           setIsPlaying(!state.paused);
-          setCurrentTrackImageUrl(
-            state.track_window.current_track.album.images[0]?.url ?? null,
-          );
-          setCurrentTrackName(state.track_window.current_track.name);
+          const currentTrack = state.track_window.current_track;
+          const imageUrl = currentTrack.album.images[0]?.url ?? null;
+
+          setCurrentTrackImageUrl(imageUrl);
+          setCurrentTrackName(currentTrack.name);
+          recentTrackRef.current = {
+            uri: currentTrack.uri,
+            name: currentTrack.name,
+            imageUrl,
+          };
+          storeRecentTrack(recentTrackRef.current);
         });
 
         player.addListener("initialization_error", (error) =>
@@ -147,6 +178,7 @@ export function MusicPlayer({
     setCurrentTrackImageUrl(null);
     setCurrentTrackName(null);
     setStatus("Spotify 연결 대기 중");
+    hasRestoredPlaybackRef.current = false;
   }, [onAccessTokenChange]);
 
   const handleTogglePlay = useCallback(async () => {
@@ -158,7 +190,8 @@ export function MusicPlayer({
     }
 
     try {
-      const playbackUri = selectedPlaylistUri ?? defaultUri;
+      const playbackUri =
+        selectedPlaylistUri ?? recentTrackRef.current?.uri ?? defaultUri;
 
       if (playbackUri && activePlaybackUriRef.current !== playbackUri) {
         await startSpotifyPlayback(accessToken, deviceId, playbackUri);
