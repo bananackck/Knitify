@@ -59,7 +59,7 @@ export function MusicLibrary({
 
   return (
     <section
-      className="flex min-h-32 min-w-0 flex-col gap-3 rounded-app-panel bg-surface p-4"
+      className="flex min-h-32 min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-app-panel bg-surface p-3"
       aria-label="플리 선택 필터"
     >
       <h2 className="text-xs font-medium text-app-muted">라이브러리 탐색기</h2>
@@ -121,13 +121,13 @@ function LibraryContent({
   }
 
   return (
-    <ul className="flex min-w-0 list-none gap-4 overflow-x-auto p-0 pb-2">
+    <ul className="flex min-h-0 min-w-0 flex-1 list-none flex-col gap-2 overflow-y-auto p-0 pr-1">
       {playlists.map((playlist) => (
-        <li key={playlist.id} className="w-24 shrink-0">
+        <li key={playlist.id} className="w-full shrink-0">
           <button
             type="button"
             aria-pressed={selectedPlaylistId === playlist.id}
-            className="group w-full cursor-pointer rounded-app-panel text-left outline-none"
+            className="group grid w-full cursor-pointer grid-cols-[3.5rem_minmax(0,1fr)] gap-3 rounded-app-panel p-1 text-left outline-none hover:bg-panel"
             onClick={() => onPlaylistSelect(playlist)}
           >
             <span
@@ -145,16 +145,18 @@ function LibraryContent({
                 />
               ) : null}
             </span>
-            <span className="mt-2 block truncate text-sm font-semibold text-app-text">
-              {playlist.name}
-            </span>
-            <span className="block truncate text-xs text-app-muted">
-              {playlist.trackCount === null
-                ? "플레이리스트"
-                : `${playlist.trackCount}곡`}
-            </span>
-            <span className="block truncate text-xs text-app-muted">
-              {playlist.ownerName}
+            <span className="flex min-w-0 flex-col justify-center">
+              <span className="block truncate text-sm font-semibold text-app-text">
+                {playlist.name}
+              </span>
+              <span className="block truncate text-xs text-app-muted">
+                {playlist.trackCount === null
+                  ? "플레이리스트"
+                  : `${playlist.trackCount}곡`}
+              </span>
+              <span className="block truncate text-xs text-app-muted">
+                {playlist.ownerName}
+              </span>
             </span>
           </button>
         </li>

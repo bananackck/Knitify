@@ -274,10 +274,10 @@ export function MusicPlayer({
 
   return (
     <section
-      className="flex h-full min-h-[320px] min-w-0 flex-col items-center justify-center gap-5 rounded-app-panel p-6"
+      className="flex min-h-[280px] min-w-0 flex-col items-center justify-center gap-3 rounded-app-panel p-3"
       aria-label="음악 플레이어"
     >
-      <div className="relative flex aspect-square w-full max-w-88 items-center justify-center rounded-full bg-primary shadow-[inset_0_-10px_24px_rgba(31,26,23,0.08),0_18px_32px_rgba(31,26,23,0.08)]">
+      <div className="relative flex aspect-square w-full max-w-44 items-center justify-center rounded-full bg-primary shadow-[inset_0_-10px_24px_rgba(31,26,23,0.08),0_18px_32px_rgba(31,26,23,0.08)]">
         <div className="absolute right-[18%] top-[15%] z-10 h-[20%] w-1.5 origin-top rotate-[40deg] rounded-full bg-app-muted/60" />
         <img
           src={currentTrackImageUrl ?? "/cd.svg"}
@@ -294,7 +294,7 @@ export function MusicPlayer({
         />
       </div>
 
-      <div className="flex items-center gap-3 rounded-full border border-app-border bg-control-panel px-4 py-2 shadow-[0_8px_20px_rgba(31,26,23,0.08)]">
+      <div className="flex items-center gap-1 rounded-full border border-app-border bg-control-panel px-2 py-1 shadow-[0_8px_20px_rgba(31,26,23,0.08)]">
         <IconButton
           aria-label="이전 곡"
           size="medium"
@@ -328,7 +328,7 @@ export function MusicPlayer({
         </IconButton>
       </div>
 
-      <div className="flex max-w-72 flex-col items-center gap-2 text-center text-xs text-app-muted">
+      <div className="flex max-w-52 flex-col items-center gap-1 text-center text-xs text-app-muted">
         {selectedPlaylistName ? (
           <span className="font-medium text-app-text">
             선택됨: {selectedPlaylistName}
