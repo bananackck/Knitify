@@ -1,8 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuthStore } from "../stores/authStore";
 
 export function AuthPanel() {
-  const { member, isLoading, login, signup, logout } = useAuth();
+  const member = useAuthStore((state) => state.member);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const login = useAuthStore((state) => state.login);
+  const signup = useAuthStore((state) => state.signup);
+  const logout = useAuthStore((state) => state.logout);
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
