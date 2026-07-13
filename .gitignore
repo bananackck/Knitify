@@ -8,8 +8,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+frontend/node_modules
+.vite
 dist
+frontend/dist
 dist-ssr
+backend/target
 *.local
 
 # Editor directories and files
@@ -25,3 +29,8 @@ dist-ssr
 
 # 개발 로그 기록을 위한 데이터 보관 디렉토리
 documentation
+
+# 환경 파일
+.env
+.env.*
+!.env.example
