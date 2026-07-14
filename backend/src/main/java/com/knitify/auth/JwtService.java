@@ -1,7 +1,5 @@
 package com.knitify.auth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -13,19 +11,21 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class JwtService {
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final byte[] secret;
 
-    public JwtService(ObjectMapper objectMapper, @Value("${app.jwt-secret}") String secret) {
+    public JwtService(JsonMapper jsonMapper, @Value("${app.jwt-secret}") String secret) {
         if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalArgumentException("JWT secret must be at least 32 bytes");
         }
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -39,8 +39,8 @@ public class JwtService {
         claims.put("iat", now.getEpochSecond());
         claims.put("exp", now.plusSeconds(lifetimeSeconds).getEpochSecond());
         try {
-            String header = encode(objectMapper.writeValueAsBytes(Map.of("alg", "HS256", "typ", "JWT")));
-            String payload = encode(objectMapper.writeValueAsBytes(claims));
+            String header = encode(jsonMapper.writeValueAsBytes(Map.of("alg", "HS256", "typ", "JWT")));
+            String payload = encode(jsonMapper.writeValueAsBytes(claims));
             String content = header + "." + payload;
             return new IssuedToken(content + "." + encode(sign(content)), tokenId, now.plusSeconds(lifetimeSeconds));
         } catch (Exception exception) {
@@ -54,7 +54,7 @@ public class JwtService {
             if (parts.length != 3) throw new IllegalArgumentException("Invalid JWT");
             byte[] expected = sign(parts[0] + "." + parts[1]);
             if (!MessageDigest.isEqual(expected, URL_DECODER.decode(parts[2]))) throw new IllegalArgumentException("Invalid signature");
-            Map<String, Object> claims = objectMapper.readValue(URL_DECODER.decode(parts[1]), new TypeReference<>() {});
+            Map<String, Object> claims = jsonMapper.readValue(URL_DECODER.decode(parts[1]), new TypeReference<>() {});
             TokenType type = TokenType.valueOf((String) claims.get("type"));
             long expiresAt = ((Number) claims.get("exp")).longValue();
             if (type != expectedType || Instant.now().getEpochSecond() >= expiresAt) throw new IllegalArgumentException("Expired or wrong token");
