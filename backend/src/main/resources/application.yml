@@ -19,8 +19,8 @@ app:
   token-encryption-key: ${TOKEN_ENCRYPTION_KEY}
   cookie-secure: ${COOKIE_SECURE:false}
   auth:
-    access-token-seconds: ${ACCESS_TOKEN_SECONDS:900}
-    refresh-token-seconds: ${REFRESH_TOKEN_SECONDS:2592000}
+    access-token-seconds: ${ACCESS_TOKEN_SECONDS:900} #15분
+    refresh-token-seconds: ${REFRESH_TOKEN_SECONDS:2592000} #30일
   spotify:
     client-id: ${SPOTIFY_CLIENT_ID:}
     client-secret: ${SPOTIFY_CLIENT_SECRET:}
